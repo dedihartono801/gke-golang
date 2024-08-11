@@ -5,8 +5,6 @@ name: Build and Deploy to GKE
 on:
   # Triggers when manually triggered from the GitHub Actions UI.
   workflow_dispatch:
-    branches:
-      - master
     # Define input parameters for manual triggering.
     inputs:
       tags:
