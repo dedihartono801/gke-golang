@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+  namespace: gke-golang
+spec:
+  selector:
+    matchLabels:
+      app: myapp
+  strategy:
+    type: RollingUpdate
+  replicas: 1
+  template: #Template for container
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      nodeSelector: # deploy to nodes with these labels
+        cloud.google.com/gke-nodepool: default-pool
+      containers:
+      - name: myapp
+        image:  gcr.io/PROJECT_ID/myapp:GITHUB_SHA
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3000
+          name: myapp
+        resources:
+          requests:
+            cpu: "50m" # 50 milli-CPU
+            memory: "64Mi"  # Set your memory request here
+          limits:
+            cpu: "100m"      # Set your CPU limit here
+            memory: "128Mi"  # Set your memory limit here
