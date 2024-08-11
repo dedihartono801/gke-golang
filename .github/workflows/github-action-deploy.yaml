@@ -25,7 +25,7 @@ env:
   PROJECT_ID: ${{ secrets.GKE_PROJECT }}
 
   # Specify the name of the GKE cluster.
-  GKE_CLUSTER: gke-learn
+  GKE_CLUSTER: gke-master
 
   # Specify the geographical zone in which the GKE cluster is located.
   GKE_ZONE: us-central1-c
