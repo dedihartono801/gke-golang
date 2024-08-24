@@ -1,0 +1,108 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-myapp
+  namespace: backend
+spec:
+  type: ClusterIP
+  selector:
+    app: myapp
+  ports:
+  - protocol: TCP
+    port: 8080
+    targetPort: 3000
+
+---
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/version: 1.10.0
+  name: nginx
+  namespace: backend
+spec:
+  controller: k8s.io/ingress-nginx
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-myapp
+  namespace: backend
+  annotations:
+    kubernetes.io/ingress.allow-http: "false"
+spec:
+  ingressClassName: nginx
+  tls: # Configuration for HTTPS
+    - hosts:
+      - api.cobasaja.biz.id
+      secretName: tls-api-cobasaja # Name of the TLS secret object
+  rules:
+  - host: api.cobasaja.biz.id  # Replace with your domain or IP
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: service-myapp
+            port:
+              number: 8080
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: hpa-myapp
+  namespace: backend
+spec:
+  behavior:
+    scaleUp:
+      policies:
+      - type: Percent
+        value: 90
+        periodSeconds: 15 # Up to nine times the current number of replicas can be added every 15 seconds.
+    scaleDown:
+      policies:
+      - type: Pods
+        value: 1
+        periodSeconds: 10 # Only one Pod can be released every ten minutes.
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: myapp
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 90
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 90
+
+# Define a PodDisruptionBudget named "pdb-for-myapp" within the "production" namespace.
+# This PDB ensures that at least 2 pods of the "myapp" Deployment are available during disruptions.
+# The usage of minAvailable is specified, while maxUnavailable is commented out.
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pdb-for-myapp
+  namespace: backend
+spec:
+  minAvailable: 1 # Minimum number of pods that must be available
+  #maxUnavailable: 1 # Maximum number of pods that can be unavailable
+  selector:
+    matchLabels:
+      app: myapp
